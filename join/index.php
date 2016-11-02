@@ -1,6 +1,7 @@
 <?php
     // セッションの設定
     session_start();
+    require('../dbconnect.php');
 
     // 各入力欄のvalueの初期値を定義
     $nick_name = '';
@@ -40,6 +41,17 @@
             }
         }
 
+        // メールアドレスの重複チェック
+        if (empty($error)) {
+            $sql = sprintf('SELECT COUNT(*) AS cnt FROM `members`
+                           WHERE `email`="%s"',
+                           mysqli_real_escape_string($db, $email)
+                           );
+            // p246のコード
+            // p247のコード (ifの条件、今までのコードと合わせる必要あり)
+            // HTMLテンプレートと統合する (上級者課題)
+        }
+
         // エラーがなかった場合の処理
         if (empty($error)) {
             // 画像をアップロードする
@@ -55,7 +67,14 @@
 
     }
 
-
+    // 書き直し処理
+    if (isset($_REQUEST['action']) && $_REQUEST['action'] == 'rewrite') {
+        $_POST = $_SESSION['join'];
+        $nick_name = $_POST['nick_name'];
+        $email = $_POST['email'];
+        $password = $_POST['password'];
+        $error['rewrite'] = true;
+    }
  ?>
 
 <!--
@@ -87,6 +106,9 @@
   <input type="file" name="picture_path"><br>
   <?php if(isset($error['picture_path']) && $error['picture_path'] == 'type'): ?>
     <p style="color:red;">* プロフィール画像は「jpg」「gif」「png」の画像を指定してください</p>
+  <?php endif; ?>
+  <?php if(!empty($error)): ?>
+    <p style="color:red;">* 画像を再選択してください</p>
   <?php endif; ?>
 
   <input type="submit" value="確認画面へ">
