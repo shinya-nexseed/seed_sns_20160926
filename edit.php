@@ -16,6 +16,21 @@
                 mysqli_real_escape_string($db, $_REQUEST['tweet_id'])
             );
     $tweets = mysqli_query($db, $sql) or die(mysqli_error($db));
+
+    // 更新処理
+    if (!empty($_POST)) {
+        if ($_POST['tweet'] != '') {
+            $sql = sprintf('UPDATE `tweets` SET `tweet` = "%s"
+                                            WHERE `tweet_id` = %d',
+                            mysqli_real_escape_string($db, $_POST['tweet']),
+                            mysqli_real_escape_string($db, $_REQUEST['tweet_id'])
+                        );
+            mysqli_query($db, $sql) or die(mysqli_error($db));
+
+            header('Location: index.php');
+            exit();
+        }
+    }
  ?>
 
 <!DOCTYPE html>
@@ -70,18 +85,18 @@
     <div class="row">
       <div class="col-md-4 col-md-offset-4 content-margin-top">
         <?php if($tweet = mysqli_fetch_assoc($tweets)): ?>
-        <form action="">
+        <form action="" method="post" class="form-horizontal">
           <div class="msg">
             <img src="member_picture/<?php echo $tweet['picture_path']; ?>" width="100" height="100">
             <p>投稿者 : <span class="name"> <?php echo $tweet['nick_name']; ?> </span></p>
             <p>
               つぶやき : <br>
-              <textarea name="" id="" cols="50" rows="2"><?php echo $tweet['tweet']; ?></textarea>
+              <textarea name="tweet" cols="50" rows="2" class="form-control"><?php echo $tweet['tweet']; ?></textarea>
             </p>
             <p class="day">
               <?php echo $tweet['created']; ?>
             </p>
-            <input type="submit" value="更新">
+            <input type="submit" value="更新" class="btn btn-default">
           </div>
         </form>
         <?php else: ?>
