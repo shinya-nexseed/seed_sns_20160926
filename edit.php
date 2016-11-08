@@ -70,20 +70,20 @@
     <div class="row">
       <div class="col-md-4 col-md-offset-4 content-margin-top">
         <?php if($tweet = mysqli_fetch_assoc($tweets)): ?>
-        <div class="msg">
-          <img src="member_picture/<?php echo $tweet['picture_path']; ?>" width="100" height="100">
-          <p>投稿者 : <span class="name"> <?php echo $tweet['nick_name']; ?> </span></p>
-          <p>
-            つぶやき : <br>
-            <?php echo $tweet['tweet']; ?>
-          </p>
-          <p class="day">
-            <?php echo $tweet['created']; ?>
-            <?php if($_SESSION['id'] == $tweet['member_id']): ?>
-              [<a href="delete.php?tweet_id=<?php echo $tweet['tweet_id']; ?>" style="color: #F33;">削除</a>]
-            <?php endif; ?>
-          </p>
-        </div>
+        <form action="">
+          <div class="msg">
+            <img src="member_picture/<?php echo $tweet['picture_path']; ?>" width="100" height="100">
+            <p>投稿者 : <span class="name"> <?php echo $tweet['nick_name']; ?> </span></p>
+            <p>
+              つぶやき : <br>
+              <textarea name="" id="" cols="50" rows="2"><?php echo $tweet['tweet']; ?></textarea>
+            </p>
+            <p class="day">
+              <?php echo $tweet['created']; ?>
+            </p>
+            <input type="submit" value="更新">
+          </div>
+        </form>
         <?php else: ?>
           <p>そのつぶやきは削除されたか、URLが間違っています。</p>
         <?php endif; ?>

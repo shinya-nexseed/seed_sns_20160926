@@ -41,11 +41,54 @@
         }
     }
 
+    // ページング処理
+    $page = '';
+    // パラメータ上のページ番号取得
+    if (isset($_REQUEST['page'])) {
+        $page = $_REQUEST['page'];
+    }
+    // パラメータにページ番号がない場合は、ページ番号を1にする
+    if ($page == '') {
+        $page = 1;
+    }
+    // 表示する正しいページの数値 (最小値) を設定
+    $page = max($page, 1);
+    $page = ceil($page / 1);
+    // 必要なページ数を計算
+    $sql = 'SELECT COUNT(*) AS cnt FROM `tweets`';
+    $recordSet = mysqli_query($db, $sql) or die(mysqli_error($db));
+    $table = mysqli_fetch_assoc($recordSet);
+    // 5で割り切れない件数の場合は切り上げる
+    $maxPage = ceil($table['cnt'] / 5);
+    // 表示する正しいページ数の数値 (最大値) を設定
+    $page = min($page, $maxPage);
+
+    // ページに表示する件数だけ取得
+    $start = ($page - 1) * 5;
+    $start = max(0, $start);
+
     // つぶやきデータを取得する Read
-    $sql = 'SELECT m.`nick_name`, m.`picture_path`, t.*
-            FROM `tweets` t, `members` m
-            WHERE m.`member_id`=t.`member_id`
-            ORDER BY t.`created` DESC';
+    if (!empty($_GET['search_word'])) {
+        // 検索の場合
+        // sprintf関数とLIKE句を組み合わせる場合は、LIKEの%を2回繰り返す必要がある
+        $sql = sprintf('SELECT m.`nick_name`, m.`picture_path`, t.*
+                FROM `tweets` t, `members` m
+                WHERE m.`member_id`=t.`member_id`
+                AND t.`tweet` LIKE "%%%s%%"
+                ORDER BY t.`created` DESC LIMIT %d, 5',
+                mysqli_real_escape_string($db, $_GET['search_word']),
+                $start
+              );
+    } else {
+        // 普通にページを表示する場合
+        $sql = sprintf('SELECT m.`nick_name`, m.`picture_path`, t.*
+                FROM `tweets` t, `members` m
+                WHERE m.`member_id`=t.`member_id`
+                ORDER BY t.`created` DESC LIMIT %d, 5',
+                $start
+              );
+    }
+
     $tweets = mysqli_query($db, $sql) or die(mysqli_error($db));
 
     // 返信処理
@@ -61,6 +104,11 @@
         $record = mysqli_query($db, $sql) or die(mysqli_error($db));
         $table = mysqli_fetch_assoc($record);
         $reply_tweet = '@' . $table['nick_name'] . ': ' . $table['tweet'] . ' -> ';
+    }
+
+    // 正規表現を使ってつぶやき内のURLにリンクを設置する
+    function makeLink($value) {
+        return mb_ereg_replace('(https?)(://[[:alnum:]¥+¥$¥;¥?¥.%,!#~*/:@&=_-]+)', '<a href="\1\2" target="_blank">\1\2</a>', $value);
     }
  ?>
 
@@ -104,7 +152,7 @@
           <!-- Collect the nav links, forms, and other content for toggling -->
           <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
               <ul class="nav navbar-nav navbar-right">
-                <li><a href="logout.html">ログアウト</a></li>
+                <li><a href="logout.php">ログアウト</a></li>
               </ul>
           </div>
           <!-- /.navbar-collapse -->
@@ -128,27 +176,53 @@
           <ul class="paging">
             <input type="submit" class="btn btn-info" value="つぶやく">
                 &nbsp;&nbsp;&nbsp;&nbsp;
-                <li><a href="index.html" class="btn btn-default">前</a></li>
+                <?php if($page > 1): ?>
+                  <li><a href="index.php?page=<?php echo $page - 1; ?>" class="btn btn-default">前</a></li>
+                <?php else: ?>
+                  <li>前</li>
+                <?php endif; ?>
                 &nbsp;&nbsp;|&nbsp;&nbsp;
-                <li><a href="index.html" class="btn btn-default">次</a></li>
+                <?php if($page < $maxPage): ?>
+                  <li><a href="index.php?page=<?php echo $page + 1; ?>" class="btn btn-default">次</a></li>
+                <?php else: ?>
+                  <li>次</li>
+                <?php endif; ?>
           </ul>
         </form>
       </div>
 
       <div class="col-md-8 content-margin-top">
+        <!-- 検索ボックス -->
+        <form action="index.php" method="get" class="form-horizontal">
+          <select name="" id="">
+            <option value="">ユーザー名</option>
+            <option value="">つぶやき</option>
+            <option value="">メールアドレス</option>
+          </select>
+          <input type="text" name="search_word">
+          <!-- index.php?search_word=value -->
+          <!-- $_GET['search_word'] -->
+          <input type="submit" value="検索" class="btn btn-success btn-xs">
+        </form>
         <?php while($tweet = mysqli_fetch_assoc($tweets)): ?>
           <div class="msg">
             <img src="member_picture/<?php echo $tweet['picture_path']; ?>" width="48" height="48">
             <p>
-              <?php echo $tweet['tweet']; ?><span class="name"> (<?php echo $tweet['nick_name']; ?>) </span>
+              <?php echo makeLink($tweet['tweet']); ?><span class="name"> (<?php echo $tweet['nick_name']; ?>) </span>
               [<a href="index.php?res=<?php echo $tweet['tweet_id']; ?>">Re</a>]
             </p>
             <p class="day">
               <a href="view.php?tweet_id=<?php echo $tweet['tweet_id']; ?>">
                 <?php echo $tweet['created']; ?>
               </a>
-              [<a href="#" style="color: #00994C;">編集</a>]
-              [<a href="#" style="color: #F33;">削除</a>]
+
+              <?php if($_SESSION['id'] == $tweet['member_id']): ?>
+                [<a href="edit.php?tweet_id=<?php echo $tweet['tweet_id']; ?>" style="color: #00994C;">編集</a>]
+                [<a href="delete.php?tweet_id=<?php echo $tweet['tweet_id']; ?>" style="color: #F33;">削除</a>]
+              <?php endif; ?>
+              <?php if($tweet['reply_tweet_id'] > 0): ?>
+                | <a href="view.php?tweet_id=<?php echo $tweet['reply_tweet_id']; ?>">返信元のつぶやき</a>
+              <?php endif; ?>
             </p>
           </div>
         <?php endwhile; ?>
