@@ -70,11 +70,10 @@
     // つぶやきデータを取得する Read
     if (!empty($_GET['search_word'])) {
         // 検索の場合
-        // sprintf関数とLIKE句を組み合わせる場合は、LIKEの%を2回繰り返す必要がある
 
-        // 指定カラムによってSELECT文分岐
+        // 指定カラムallの場合はUNIONを使う
         if ($_GET['search_column'] == 'all') {
-            // 「すべて」に対する処理
+            // sprintf関数とLIKE句を組み合わせる場合は、LIKEの%を2回繰り返す必要がある
             $sql = sprintf('SELECT m.`nick_name`, m.`picture_path`, t.*
                     FROM `tweets` t, `members` m
                     WHERE m.`member_id`=t.`member_id`
@@ -85,30 +84,32 @@
                                         WHERE m.`member_id`=t.`member_id`
                                         AND m.`nick_name` LIKE "%%%s%%"
                     ',
+                    // ORDER BY t.`created` DESC LIMIT %d, 5
                     mysqli_real_escape_string($db, $_GET['search_word']),
-                    mysqli_real_escape_string($db, $_GET['search_word'])
+                    mysqli_real_escape_string($db, $_GET['search_word'])//,
+                    //$start
                   );
-            // ORDER BY t.`created` DESC LIMIT %d, 5
         } else {
-            // 「投稿者」もしくは「つぶやき」に対する処理
+
             if ($_GET['search_column'] == 'nick_name') {
                 $column = 'm.`nick_name`';
             } else {
                 $column = 't.`tweet`';
             }
 
+            // sprintf関数とLIKE句を組み合わせる場合は、LIKEの%を2回繰り返す必要がある
             $sql = sprintf('SELECT m.`nick_name`, m.`picture_path`, t.*
                     FROM `tweets` t, `members` m
                     WHERE m.`member_id`=t.`member_id`
                     AND %s LIKE "%%%s%%"
                     ORDER BY t.`created` DESC LIMIT %d, 5',
-                    mysqli_real_escape_string($db, $column),
+                    $column,
                     mysqli_real_escape_string($db, $_GET['search_word']),
                     $start
                   );
         }
-
     } else {
+
         // 普通にページを表示する場合
         $sql = sprintf('SELECT m.`nick_name`, m.`picture_path`, t.*
                 FROM `tweets` t, `members` m
@@ -176,7 +177,7 @@
                   <span class="icon-bar"></span>
                   <span class="icon-bar"></span>
               </button>
-              <a class="navbar-brand" href="index.html"><span class="strong-title"><i class="fa fa-twitter-square"></i> Seed SNS</span></a>
+              <a class="navbar-brand" href="index.php"><span class="strong-title"><i class="fa fa-twitter-square"></i> Seed SNS</span></a>
           </div>
           <!-- Collect the nav links, forms, and other content for toggling -->
           <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
@@ -225,7 +226,7 @@
         <form action="index.php" method="get" class="form-horizontal">
           <select name="search_column">
             <option value="all">すべて</option>
-            <option value="nick_name">投稿者名</option>
+            <option value="nick_name">ユーザー名</option>
             <option value="tweet">つぶやき</option>
           </select>
           <input type="text" name="search_word">

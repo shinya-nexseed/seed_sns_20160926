@@ -7,9 +7,9 @@
       // 1. UIに必要な表示をするため
       // 2. デバッグ用に変数の内容を表示するため
     function special_echo($val) {
-        if (DEBUG) {
+        if (DEBUG) { // デバッグモードのときのみ処理される
             echo $val;
-            echo '<br>';
+            echo '<br>'; // デフォルトで改行処理を含む
         }
     }
 
@@ -18,4 +18,20 @@
     echo '普通のecho';
 
     // var_dumpの独自関数化
+    function special_var_dump($val) {
+        if (DEBUG) {
+            echo '<pre>';
+            var_dump($val);
+            echo '</pre>';
+        }
+    }
+
+    $ary = array('PHP', 'Ruby', 'C', 'Java', 'Python');
+    special_var_dump($ary);
+    var_dump($ary);
+
+
+
+
+
  ?>
